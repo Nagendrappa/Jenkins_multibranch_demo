@@ -1,5 +1,3 @@
-// Triggering Jenkins scan
-
 pipeline {
     agent any
 
@@ -25,6 +23,18 @@ pipeline {
                 script {
                     def tag = BRANCH_NAME.replaceAll('/', '-')
                     sh "docker build -t ${APP_NAME}:${tag} ."
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker_registry', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    sh """
+                        echo "$PASS" | docker login -u "$USER" --password-stdin
+                        docker tag ${APP_NAME}:${BRANCH_NAME.replaceAll('/', '-')} $USER/${APP_NAME}:${BRANCH_NAME.replaceAll('/', '-')}
+                        docker push $USER/${APP_NAME}:${BRANCH_NAME.replaceAll('/', '-')}
+                    """
                 }
             }
         }
